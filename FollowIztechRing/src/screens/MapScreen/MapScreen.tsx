@@ -108,29 +108,31 @@ const MapScreen = () => {
   ]);
 
   const [busLocation, setBusLocation] = useState({
-    latitude: 38.319226,
-    longitude: 26.642514,
+    latitude: 0,
+    longitude: 0,
     // latitude: 38.319226,
     // longitude: 26.642514,
   });
 
   const [path, setPath] = useState([]);
 
-  const flatListData = [
-    {key: '1', text: 'Rektörlük Durağı', time: '5'},
-    {key: '2', text: 'Makina Mühendisliği Bölümü Durağı', time: '7'},
-    {key: '3', text: 'Yabancı Diller Durağı', time: '9'},
-    {key: '4', text: 'Kimya Mühendisliği Bölümü Durağı', time: '12'},
-    {key: '5', text: 'EHM Durağı', time: '13'},
-    {key: '6', text: 'Kütüphane Durağı', time: '15'},
-    {key: '7', text: 'Spor Salonu Durağı', time: '18'},
-    {key: '8', text: 'AFAD Yurdu Durağı', time: '23'},
-    {key: '9', text: 'KYK Yurdu Durağı', time: '26'},
-    {key: '11', text: 'Yurtlar Durağı', time: '28'},
-    {key: '12', text: 'Biyoloji Bölümü Durağı', time: '32'},
-    {key: '13', text: 'Matematik Bölümü Durağı', time: '34'},
-    {key: '14', text: 'Mimarlık Fakültesi Durağı', time: '40'},
-  ];
+  // const [eta, setEta] = useState([]);
+
+  // const flatListData = [
+  //   {key: '1', text: 'Rektörlük Durağı', time: '5'},
+  //   {key: '2', text: 'Makina Mühendisliği Bölümü Durağı', time: '7'},
+  //   {key: '3', text: 'Yabancı Diller Durağı', time: '9'},
+  //   {key: '4', text: 'Kimya Mühendisliği Bölümü Durağı', time: '12'},
+  //   {key: '5', text: 'EHM Durağı', time: '13'},
+  //   {key: '6', text: 'Kütüphane Durağı', time: '15'},
+  //   {key: '7', text: 'Spor Salonu Durağı', time: '18'},
+  //   {key: '8', text: 'AFAD Yurdu Durağı', time: '23'},
+  //   {key: '9', text: 'KYK Yurdu Durağı', time: '26'},
+  //   {key: '11', text: 'Yurtlar Durağı', time: '28'},
+  //   {key: '12', text: 'Biyoloji Bölümü Durağı', time: '32'},
+  //   {key: '13', text: 'Matematik Bölümü Durağı', time: '34'},
+  //   {key: '14', text: 'Mimarlık Fakültesi Durağı', time: '40'},
+  // ];
 
   const renderItem = ({item, index}) => (
     <View>
@@ -139,12 +141,12 @@ const MapScreen = () => {
           <View style={styles.listContainer}>
             <Text style={styles.stop}>
               {'Hareket Yeri: '}
-              {item.text}
+              {item.stopName}
             </Text>
             <View style={styles.row}>
               <Icon name="bus-alt" size={20} color="#000" style={styles.icon} />
               <Text style={styles.info}>
-                {item.time}
+                {item.arrivalTime}
                 {'dk'}
               </Text>
             </View>
@@ -156,11 +158,11 @@ const MapScreen = () => {
       {index !== 0 && (
         <>
           <View style={styles.listContainer}>
-            <Text style={styles.stop}>{item.text}</Text>
+            <Text style={styles.stop}>{item.stopName}</Text>
             <View style={styles.row}>
               <Icon name="bus-alt" size={20} color="#000" style={styles.icon} />
               <Text style={styles.info}>
-                {item.time}
+                {item.arrivalTime}
                 {'dk'}
               </Text>
             </View>
@@ -172,9 +174,78 @@ const MapScreen = () => {
   );
 
   useEffect(() => {
+    const BASE_URL = 'https://iztech-ring-34b938d165aa.herokuapp.com/api';
+    const BASE_URL_ETAS = 'https://iztech-ring-34b938d165aa.herokuapp.com';
+
     getPath('38.3183515,26.6435979', '38.3242134,26.6310109')
       .then(coords => setPath(coords))
       .catch(err => console.log('Error! Something went wrong.'));
+
+    // const enable = () => {
+    //   const json = {
+    //     latitude: 38.32428,
+    //     longitude: 26.63096,
+    //     deviceId: 2,
+    //   };
+    //   return fetch(`${BASE_URL}/buses/1/locations`, {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify(json),
+    //   }).then(response => response);
+    // };
+
+    // enable()
+    //   .then(res => {
+    //     console.log('enable', res.status);
+    //   })
+    //   .catch(error => {
+    //     console.error('enable error:', error);
+    //   });
+
+    const updateBusLocation = () => {
+      return fetch(`${BASE_URL}/buses/locations/latest`).then(response =>
+        response.json(),
+      );
+    };
+
+    const updateETA = () => {
+      return fetch(`${BASE_URL_ETAS}/eta/`).then(response => response.json());
+    };
+
+    function init() {
+      updateBusLocation().then(data => {
+        console.log('bus', data);
+
+        const latitude = data[0]?.latitude;
+        const longitude = data[0]?.longitude;
+        if (latitude && longitude) {
+          setBusLocation({latitude, longitude});
+        } else {
+          setBusLocation({latitude: 0, longitude: 0});
+        }
+      });
+
+      updateETA().then(data => {
+        const etas = data[0]?.etas;
+        console.log('etas', etas);
+
+        if (etas) {
+          setEta(etas);
+        } else {
+          setEta([]);
+        }
+      });
+    }
+
+    init();
+
+    const interval = setInterval(() => {
+      init();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -211,11 +282,19 @@ const MapScreen = () => {
           <View style={styles.dragHandle} />
         </View>
         <View style={styles.list}>
-          <FlatList
-            data={flatListData}
-            renderItem={renderItem}
-            keyExtractor={item => item.key}
-          />
+          {eta.length !== 0 ? (
+            <FlatList
+              data={eta}
+              renderItem={renderItem}
+              keyExtractor={item => item.key}
+            />
+          ) : (
+            <View style={{alignItems: 'center', justifyContent: 'center'}}>
+              <Text style={{color: '#000', fontSize: 16, fontWeight: 'bold'}}>
+                Şuan uygun ring bulunmamaktadır!
+              </Text>
+            </View>
+          )}
         </View>
       </Animated.View>
     </View>
